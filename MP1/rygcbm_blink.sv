@@ -1,4 +1,4 @@
-// Cycles the RGB LEDs on the board around the HSV color wheel every second
+// Cycles the RGB LEDs on the board around 6 colors on the HSV color wheel every second
 
 module top(
     input logic     clk, 
@@ -8,26 +8,28 @@ module top(
     );
 
     // CLK frequency is 12MHz, so 2,000,000 cycles is 1/6 s
-    parameter BLINK_INTERVAL = 2000000; // constant blink interval parameter
-    logic [$clog2(BLINK_INTERVAL) - 1:0] count = 0; // determine  size of counter register
-    reg [7:0] color = 2; // register with current color between 2-7
+    parameter BLINK_INTERVAL = 2000000; // time between color switches
 
-    initial begin //run this once if simulating
-        RGB_R = 1'b0; // turn (active low) red LED on by setting it to a digital zero
-        RGB_G = 1'b0;
-        RBG_B = 1'b0;
-    end
+    parameter LED_ON = 1'b0; // LED is active low so this turns it on
+    parameter LED_OFF = 1'b1;
+
+    // enum assigns increasing numbers so they go from RED to MAGENTA when incremented
+    typedef enum {RED,YELLOW,GREEN,CYAN,BLUE,MAGENTA} colors;
+    
+    logic [$clog2(BLINK_INTERVAL) - 1:0] count = 0; // determine  size of counter register
+    colors color = RED; // register with current color
 
     always_comb begin // combinational logic values that are always true
-        // assign color with combinational case statement (note that 0 is on 1 is off)
+        // set color constantly with combinational case statement
         case(color)
-            2: begin RGB_R = 1'b0;RGB_G = 1'b1; RGB_B = 1'b1; end // RED
-            3: begin RGB_R = 1'b0;RGB_G = 1'b0; RGB_B = 1'b1; end // YELLOW
-            4: begin RGB_R = 1'b1;RGB_G = 1'b0; RGB_B = 1'b1; end // GREEN
-            5: begin RGB_R = 1'b1;RGB_G = 1'b0; RGB_B = 1'b0; end // CYAN
-            6: begin RGB_R = 1'b1;RGB_G = 1'b1; RGB_B = 1'b0; end // BLUE
-            7: begin RGB_R = 1'b0;RGB_G = 1'b1; RGB_B = 1'b0; end // MAGENTA
-            default: begin RGB_R = 1'b1; RGB_G = 1'b1; RGB_B = 1'b1; end // off -- not reached hopefully
+            RED:     begin RGB_R = LED_ON;RGB_G = LED_OFF; RGB_B = LED_OFF; end
+            YELLOW:  begin RGB_R = LED_ON;RGB_G = LED_ON; RGB_B = LED_OFF; end
+            GREEN:   begin RGB_R = LED_OFF;RGB_G = LED_ON; RGB_B = LED_OFF; end
+            CYAN:    begin RGB_R = LED_OFF;RGB_G = LED_ON; RGB_B = LED_ON; end
+            BLUE:    begin RGB_R = LED_OFF;RGB_G = LED_OFF; RGB_B = LED_ON; end
+            MAGENTA: begin RGB_R = LED_ON;RGB_G = LED_OFF; RGB_B = LED_ON; end
+            // all off -- not reached hopefully
+            default: begin RGB_R = LED_OFF; RGB_G = LED_OFF; RGB_B = LED_OFF; end
         endcase
     end
 
@@ -36,9 +38,9 @@ module top(
         if (count == BLINK_INTERVAL - 1) begin // reset counter and update color
             count <= 0;
 
-            // go to the next color in sequence
-            if(color == 7) begin
-                color <= 2;
+            // restart with first color or go to the next color in sequence
+            if(color ==  MAGENTA) begin
+                color <= RED;
             end
             else begin
                 color <= color + 1;
