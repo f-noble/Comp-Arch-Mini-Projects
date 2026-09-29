@@ -1,5 +1,9 @@
+# no fpga synthesis output files
 *.blif
 *.asc
 *.json
 *.bin
+# no simulation files
 *.vcd
+hsv_fade
+pwm_ramp_only

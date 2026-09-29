@@ -1,6 +1,7 @@
 // Fades the RGB LEDs on the board between 6 colors around the HSV color wheel every second, using a periodically increasing pwm input
 
 module hsv_fade(
+    input logic clk,
     input logic increment_state, // change which color fade state
     input logic increasing_pwm, // should fade from off to on restarting every next_state
     output logic red,
@@ -14,7 +15,7 @@ module hsv_fade(
     localparam OFF = 1'b0;
 
     // enum assigns increasing numbers so they go from RED to MAGENTA when incremented
-    typedef enum {RED=2,YELLOW,GREEN,CYAN,BLUE,MAGENTA} initial_color;
+    typedef enum {RED,YELLOW,GREEN,CYAN,BLUE,MAGENTA} initial_color;
     
     initial_color start_color = RED; // register with current color 
     logic fade_on;
@@ -39,20 +40,23 @@ module hsv_fade(
             BLUE:    begin red =  fade_on;green =      OFF; blue =       ON; end
             MAGENTA: begin red = ON      ;green =      OFF; blue = fade_off; end
             // not reached hopefully
+               // RED: begin red=fade_on;green=fade_on;blue=fade_on;end
+               // YELLOW: begin red=fade_off;green=fade_off;blue=fade_off;end
             default: begin red = 1'bx; green = 1'bx; blue = 1'bx; end
         endcase
     end
 
-    always_ff @(posedge increment_state) begin // update color state when pwm ramp restarts
+    always_ff @(posedge clk) begin // update color state when pwm ramp restarts
+        if(increment_state) begin
             // restart with first color or go to the next color in sequence
             if(start_color ==  MAGENTA) begin
                 start_color <= RED;
             end
             else begin
                 // start_color <= start_color.next();
-                start_color <= start_color + 1;
+                start_color <= initial_color'(int'(start_color) + 1);
             end
-
+        end
     end
 
 endmodule

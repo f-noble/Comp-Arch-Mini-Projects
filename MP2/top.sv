@@ -10,8 +10,8 @@ module top #(
     input logic     clk,
     output logic    RGB_R,
     output logic    RGB_G,
-    output logic    RGB_B,
-    output logic    LED
+    output logic    RGB_B
+    // output logic    LED
     );
 
     logic [$clog2(PWM_INTERVAL) - 1:0] pwm_value;
@@ -39,6 +39,7 @@ module top #(
     );
 
     hsv_fade u3(
+        .clk             (clk),
         .increment_state (cycle_led_states),
         .increasing_pwm  (pwm_out),
         .red             (red),
@@ -46,12 +47,19 @@ module top #(
         .blue            (blue)
     );
 
+
+
     // assign active-low LEDs 
     assign RGB_R = ~red;
     assign RGB_G = ~green;
     assign RGB_B = ~blue;
+    // assign RGB_G = 1'b0;
+    // assign RGB_R = 1'b1;
+    // assign RGB_B = 1'b1;
 
-    assign LED = pwm_out;
+    // assign RGB_G = (pwm_value == 0)?1'b0:1'b1;
+    // assign RGB_G = ~cycle_led_states;
+    // assign LED = pwm_out;
     // assign LED = (pwm_out == led_value);
     // always_ff @(posedge cycle_led_states)
         // led_value <= ~led_value;
