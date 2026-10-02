@@ -1,6 +1,7 @@
 `timescale 10ns/10ns // 10ns time steps/data recorded every 10ns
 `include "top.sv"
 
+// Run the hsv fade project and track total clock cycles passed
 module hsv_fade_tb;
 
     parameter PWM_INTERVAL = 1200;
@@ -9,7 +10,7 @@ module hsv_fade_tb;
     logic RGB_R;
     logic RGB_G;
     logic RGB_B;
-    logic[24] clk_cycles = 0; // at note that at 12MHz 12,000,000 cycles is 1s
+    logic[24:0] clk_cycles = 0; // note that at 12MHz 12,000,000 cycles is exactly 1s
 
     top # (
         .PWM_INTERVAL   (PWM_INTERVAL)
@@ -23,7 +24,7 @@ module hsv_fade_tb;
     initial begin
         $dumpfile("hsv_fade.vcd");
         $dumpvars(0, hsv_fade_tb);
-        #60000000
+        #100000000
         $finish;
     end
 
@@ -31,7 +32,7 @@ module hsv_fade_tb;
         #4 // not 100% accurate
         clk = ~clk;        
     end
-    
+
     always_ff @(posedge clk)
         clk_cycles = clk_cycles + 1; // at 12MHz 12,000 cycles is 1ms
 

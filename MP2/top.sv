@@ -2,7 +2,8 @@
 `include "pwm.sv"
 `include "hsv_fade.sv"
 
-// Fade top level module
+// HSV Fade project top level module
+// Fades an RGB led around the 6 colors on the hsv color wheel once every second
 
 module top #(
     parameter PWM_INTERVAL = 1200       // CLK frequency is 12MHz, so 1,200 cycles is 100us
@@ -11,33 +12,34 @@ module top #(
     output logic    RGB_R,
     output logic    RGB_G,
     output logic    RGB_B
-    // output logic    LED
     );
 
-    logic [$clog2(PWM_INTERVAL) - 1:0] pwm_value;
+    logic [$clog2(PWM_INTERVAL) - 1:0] pwm_on_time;
     logic pwm_out;
-    // logic led_value = 1'b0;
     logic red;
     logic green;
     logic blue;
     logic cycle_led_states;
 
+    // Generates a ramp function with frequency 1/6 second
     pwm_ramp #(
         .PWM_INTERVAL   (PWM_INTERVAL)
     ) u1 (
         .clk            (clk), 
-        .pwm_value      (pwm_value),
-        .new_ramp      (cycle_led_states)
+        .pwm_on_time    (pwm_on_time),
+        .new_ramp       (cycle_led_states)
     );
 
+    // Generates a PWM signal with duty cycle determined by the value of the ramp from above
     pwm #(
         .PWM_INTERVAL   (PWM_INTERVAL)
     ) u2 (
         .clk            (clk), 
-        .pwm_value      (pwm_value), 
+        .pwm_on_time    (pwm_on_time), 
         .pwm_out        (pwm_out)
     );
 
+    // State machine that determines which RGB colors should be on / off / brightening / fading and assigns a fading PWM or constant value to them
     hsv_fade u3(
         .clk             (clk),
         .increment_state (cycle_led_states),
@@ -48,20 +50,9 @@ module top #(
     );
 
 
-
-    // assign active-low LEDs 
+    // Set values of output pins for active-low LEDs 
     assign RGB_R = ~red;
     assign RGB_G = ~green;
     assign RGB_B = ~blue;
-    // assign RGB_G = 1'b0;
-    // assign RGB_R = 1'b1;
-    // assign RGB_B = 1'b1;
-
-    // assign RGB_G = (pwm_value == 0)?1'b0:1'b1;
-    // assign RGB_G = ~cycle_led_states;
-    // assign LED = pwm_out;
-    // assign LED = (pwm_out == led_value);
-    // always_ff @(posedge cycle_led_states)
-        // led_value <= ~led_value;
 
 endmodule
