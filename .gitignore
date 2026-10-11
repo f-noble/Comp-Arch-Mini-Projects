@@ -7,3 +7,6 @@
 *.vcd
 hsv_fade
 pwm_ramp_only
+# ignore led_matrix spiral memory initialization and output comparison image files
+MP3/led_matrix/spiral/spiral*.png
+MP3/led_matrix/spiral/*.txt
