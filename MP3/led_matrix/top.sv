@@ -28,7 +28,7 @@ module top(
     logic ws2812b_out;
 
     // Memory location to be read from memory of each of the colors
-    assign address = { frame, pixel };
+    assign address = { frame , pixel };
 
     // Instance sample memory for red channel
     memory #(

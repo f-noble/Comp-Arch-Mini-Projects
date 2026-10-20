@@ -92,6 +92,7 @@ print("done")
 # save to output file. not yet implemented. 
 if (outfile is None):
     outfile = "gameoflife_output"
-    print("no outfile specified. outputting to gameoflife_output")
+    print("no outfile specified. outputting to:",outfile)
 else:
-    print("outputting to ",outfile)
+    print("outputting to:",outfile)
+
