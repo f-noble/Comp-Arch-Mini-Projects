@@ -4,9 +4,6 @@
 // led_matrix top level module
 
 module top #(
-    parameter FRAME_TIME = 0.25, // seconds per frame
-    parameter FRAME_CYCLES = 0.25*12000000 // clock cycles per frame
-)(
     input logic     clk, 
     input logic     SW, 
     input logic     BOOT,
