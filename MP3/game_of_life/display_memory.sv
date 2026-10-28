@@ -24,9 +24,9 @@ module display_memory(
     output logic    _48b, 
     output logic    _45a,
     output logic    displaying,
-    output logic    bitmap_row_mem_out_red, 
-    output logic    bitmap_row_mem_out_green, 
-    output logic    bitmap_row_mem_out_blue, 
+    output logic    [7:0] bitmap_row_mem_out_red, 
+    output logic    [7:0] bitmap_row_mem_out_green, 
+    output logic    [7:0] bitmap_row_mem_out_blue, 
     output logic    mem_out_red, 
     output logic    mem_out_green, 
     output logic    mem_out_blue
@@ -71,6 +71,7 @@ module display_memory(
         end
     end
 
+    assign bitmap_row_mem_out_green = green_bmp_data;
 
     
     memory #(
@@ -100,8 +101,8 @@ module display_memory(
     ) u2 (
         .clk            (clk), 
         .read_address   (address), 
-        .write          (1'b0),
-        .write_data     (8'b0),
+        .write          (bitmap_write),
+        .write_data     (bitmap_row_mem_in_green),
         .read_data      (green_data)
     );
 
@@ -186,7 +187,9 @@ module display_memory(
                 // 2'b10: // show blue only when BOOT pressed
                     // shift_reg <= { 16'd0, 5'd0 ,blue_data[7:5] };
                 // 2'b11: // show full colors
-                    shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_data[7:5], 5'd0, blue_data[7:5] };
+                // CORRECT LINE: 
+                    // shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_data[7:5], 5'd0, blue_data[7:5] };
+                    shift_reg <= { 5'd0, green_output[7:5], 16'd0 };
             // endcase
         end
         else if (shift) begin // shift to next bit when requested by driver

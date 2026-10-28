@@ -2,7 +2,7 @@
 `include "top.sv"
 
 // test the led matrix
-module led_matrix_tb;
+module game_of_life_tb;
 
     logic clk = 0;
     logic SW = 1'b1;
@@ -18,9 +18,9 @@ module led_matrix_tb;
     );
 
     initial begin
-        $dumpfile("led_matrix.vcd");
-        $dumpvars(0, led_matrix_tb);
-        #10000000
+        $dumpfile("game_of_life.vcd");
+        $dumpvars(0, game_of_life_tb);
+        #40000000
         $finish;
     end
 

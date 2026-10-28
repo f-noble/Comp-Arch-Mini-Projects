@@ -3,7 +3,12 @@ module game_of_life #(
 )(
 // inputs
 input logic clk,
-input logic waiting_for_display
+input logic waiting_for_display,
+input logic[7:0] mem_in,
+output logic [2:0] address,
+output logic[7:0] write_data,
+output logic write_to_mem,
+output logic using_memory
 );
 
 localparam FRAME_CYCLES = 12000000/FPS; // clock cycles per frame
@@ -13,7 +18,7 @@ localparam READ_IN = 3'b010;
 localparam WRITE_OUT = 3'b001;
 
 localparam USE_MEM = 1'b0;
-localparam DEC_ADDR = 1'b1;
+localparam INC_ADDR = 1'b1;
 
 
 logic [$clog2(FRAME_CYCLES)-1:0] frame_time_counter = 0;
@@ -23,7 +28,10 @@ logic [2:0] state = IDLE;
 logic [2:0] next_state;
 logic mem_state = USE_MEM;
 logic next_mem_state;
-logic [2:0] mem_addr = 3'b0;
+logic [3:0] mem_addr = 4'b0;
+logic [63:0] last_game_state = 64'b0;
+logic [7:0] next_game_state;
+
 
 // State updates
 always_ff @(posedge clk) begin
@@ -47,18 +55,18 @@ always_comb begin
     end
     else begin
     next_state = IDLE;
-    end
+     end
   end
   else if (state == READ_IN) begin
-    next_state = (mem_state == USE_MEM && mem_addr == 3'b1) ? WRITE_OUT : READ_IN;
+    next_state = (mem_state == USE_MEM && mem_addr == 4'b1000) ? WRITE_OUT : READ_IN;
   end
   else if (state == WRITE_OUT) begin
-    next_state = (mem_state == USE_MEM && mem_addr == 3'b1) ? IDLE : WRITE_OUT;
+    next_state = (mem_state == USE_MEM && mem_addr == 4'b1000) ? IDLE : WRITE_OUT;
   end
   
   if (state == READ_IN || state == WRITE_OUT) begin
     if (mem_state == USE_MEM) begin
-      next_mem_state = DEC_ADDR;
+      next_mem_state = INC_ADDR;
     end
     else begin
       next_mem_state = USE_MEM;
@@ -71,13 +79,13 @@ end
 
 // updating registers dependent on state
 always_ff @(posedge clk) begin
-  if(mem_state == DEC_ADDR) begin
-    mem_addr <= mem_addr + 3'b110; // overflow aka subtract 1
+  if (next_mem_state == INC_ADDR && mem_addr !== 4'b1000) begin
+    mem_addr <= mem_addr + 4'b0001; 
   end
-  else if(state !== next_state) begin
-    mem_addr <= 3'b000;
+  else if (next_mem_state == INC_ADDR || next_state == IDLE) begin
+    mem_addr <= 4'b0000;
   end
-  if (state == READ_IN && mem_addr == 3'b000) begin
+  if (state == READ_IN && mem_addr == 4'b0000) begin
     past_game_frame <= frame_counter;
   end
 end
@@ -92,5 +100,52 @@ always_ff @(posedge clk) begin
     frame_time_counter <= frame_time_counter + 1;
     end
 end
+
+// loading game state from memory and shifting to each row
+always_ff @(posedge clk) begin
+  if (state == READ_IN && mem_state == USE_MEM) begin
+    last_game_state[7:0] <= mem_in;
+  end
+  else if ( (state == READ_IN || state == WRITE_OUT) && mem_state == INC_ADDR) begin
+    for (int i=0; i<64; i++) begin // shift each row up, wrapping from top to bottom
+      if (i-8 < 0) begin
+        last_game_state[64+(i-8)] <= last_game_state[i];
+      end
+      else begin
+        last_game_state[i-8] <= last_game_state[i];
+      end
+    end
+  end
+end
+
+// updating shift register when writing out
+// always_ff @(posedge clk) begin
+  // if (state == WRITE_OUT && mem_state = USE_MEM) begin
+    
+  // end
+// end
+
+
+
+// calculate next state of the game relative to each row
+always_comb begin
+  for (int i=0; i<8; i++) begin
+
+    
+    next_game_state[i] = last_game_state[(56+i+1)%64]; // increments circuit by 1 each time
+  end
+end
+
+
+
+// writing next state to memory
+// assign write_data = next_game_state;
+assign write_data = {next_game_state};
+
+assign write_to_mem = (state == WRITE_OUT && mem_state == USE_MEM);
+
+assign using_memory = ~(state == IDLE && next_state == IDLE);
+
+assign address = mem_addr[2:0];
 
 endmodule
