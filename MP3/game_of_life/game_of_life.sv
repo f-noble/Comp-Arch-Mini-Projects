@@ -131,8 +131,24 @@ end
 always_comb begin
   for (int i=0; i<8; i++) begin
 
-    
-    next_game_state[i] = last_game_state[(56+i+1)%64]; // increments circuit by 1 each time
+    case(
+      last_game_state[56+(i+1)%8] + // right
+      last_game_state[63-(8-i)%8] + // left
+      last_game_state[(i+1)%8] +    // bottom right
+      last_game_state[7-(8-i)%8] +  // bottom left
+      last_game_state[48+(i+1)%8] + // top right 
+      last_game_state[55-(8-i)%8] + // top left
+      last_game_state[i] +          // bottom
+      last_game_state[48+i]         // top
+    )
+    2:
+      next_game_state[i] = last_game_state[56+i] == 1'b1;
+    3:
+      next_game_state[i] = 1'b1;
+    default:
+      next_game_state[i] = 1'b0;
+    endcase
+    // next_game_state[i] = last_game_state[(56+i+1)%64]; // increments circuit by 1 each time
   end
 end
 
