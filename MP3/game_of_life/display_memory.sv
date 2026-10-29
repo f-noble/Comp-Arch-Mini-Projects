@@ -37,8 +37,12 @@ module display_memory(
     logic [7:0] blue_data;
 
     logic [7:0] green_bmp_data;
+    logic [7:0] blue_bmp_data;
+    logic [7:0] red_bmp_data;
 
     logic [7:0] green_output;
+    logic [7:0] blue_output;
+    logic [7:0] red_output;
 
     logic [5:0] pixel;
     logic [10:0] display_address;
@@ -64,16 +68,23 @@ module display_memory(
         if (bitmap_mode) begin
             display_address = { 5'b0, 3'b0, pixel[5:3] };
             green_output = { 8{green_bmp_data[{5'b0,pixel[2:0]}]} };
+            blue_output = { 8{blue_bmp_data[{5'b0,pixel[2:0]}]} };
+            red_output = { 8{red_bmp_data[{5'b0,pixel[2:0]}]} };
         end
         else begin
             display_address = { 5'b0, pixel };
             green_output = green_data;
+            blue_output = blue_data;
+            red_output = red_data;
         end
     end
 
     assign bitmap_row_mem_out_green = green_bmp_data;
+    assign bitmap_row_mem_out_blue = blue_bmp_data;
+    assign bitmap_row_mem_out_red = red_bmp_data;
 
-    
+
+    // instance starting game state in memory of green channel
     memory #(
         .INIT_FILE      ("testing_bitmap_mode.txt")
     ) u0 (
@@ -89,32 +100,32 @@ module display_memory(
         .INIT_FILE      ("spiral/red.txt")
     ) u1 (
         .clk            (clk),
-        .read_address   (address),
-        .write          (1'b0),
-        .write_data     (8'b0),
-        .read_data      (red_data)
+        .read_address   (bitmap_address),
+        .write          (bitmap_write),
+        .write_data     (bitmap_row_mem_in_red),
+        .read_data      (red_bmp_data)
     );
 
     // Instance sample memory for green channel
-    memory #(
-        .INIT_FILE      ("spiral/green.txt")
-    ) u2 (
-        .clk            (clk), 
-        .read_address   (address), 
-        .write          (bitmap_write),
-        .write_data     (bitmap_row_mem_in_green),
-        .read_data      (green_data)
-    );
+    // memory #(
+        // .INIT_FILE      ("spiral/green.txt")
+    // ) u2 (
+        // .clk            (clk), 
+        // .read_address   (address), 
+        // .write          (bitmap_write),
+        // .write_data     (bitmap_row_mem_in_green),
+        // .read_data      (green_data)
+    // );
 
     // Instance sample memory for blue channel
     memory #(
         .INIT_FILE      ("spiral/blue.txt")
     ) u3 (
         .clk            (clk), 
-        .read_address   (address), 
-        .write          (1'b0),
-        .write_data     (8'b0),
-        .read_data      (blue_data)
+        .read_address   (bitmap_address), 
+        .write          (bitmap_write),
+        .write_data     (bitmap_row_mem_in_blue),
+        .read_data      (blue_bmp_data)
     );
 
     // Instance the WS2812B output driver
@@ -189,7 +200,7 @@ module display_memory(
                 // 2'b11: // show full colors
                 // CORRECT LINE: 
                     // shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_data[7:5], 5'd0, blue_data[7:5] };
-                    shift_reg <= { 5'd0, green_output[7:5], 16'd0 };
+                    shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_output[7:5], 5'd0, blue_output[7:5] };
             // endcase
         end
         else if (shift) begin // shift to next bit when requested by driver

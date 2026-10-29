@@ -1,5 +1,5 @@
 module game_of_life #(
-    parameter FPS = 4
+    parameter FPS = 1
 )(
 // inputs
 input logic clk,
@@ -7,6 +7,8 @@ input logic waiting_for_display,
 input logic[7:0] mem_in,
 output logic [2:0] address,
 output logic[7:0] write_data,
+output logic[7:0] write_underpopulation_data,
+output logic[7:0] write_overpopulation_data,
 output logic write_to_mem,
 output logic using_memory
 );
@@ -31,6 +33,10 @@ logic next_mem_state;
 logic [3:0] mem_addr = 4'b0;
 logic [63:0] last_game_state = 64'b0;
 logic [7:0] next_game_state;
+logic [63:0] underpopulations = 64'b0;
+logic [7:0] next_underpopulation_data;
+logic [63:0] overpopulations = 64'b0;
+logic [7:0] next_overpopulation_data;
 
 
 // State updates
@@ -39,13 +45,6 @@ always_ff @(posedge clk) begin
   mem_state <= next_mem_state;
 end
 
-// ccccc meow meow meow meow mrrrrrrp mrrrrooowwwwww
-// rawr
-//            
-//            _
-//       ____/'|   -rawr
-//    __/     / 
-//  -/  //  //
 // state transition conditions
 always_comb begin
   next_state = 3'bxxx;
@@ -110,9 +109,13 @@ always_ff @(posedge clk) begin
     for (int i=0; i<64; i++) begin // shift each row up, wrapping from top to bottom
       if (i-8 < 0) begin
         last_game_state[64+(i-8)] <= last_game_state[i];
+        underpopulations[64+(i-8)] <= underpopulations[i];
+        overpopulations[64+(i-8)] <= overpopulations[i];
       end
       else begin
         last_game_state[i-8] <= last_game_state[i];
+        underpopulations[i-8] <= underpopulations[i];
+        overpopulations[i-8] <= overpopulations[i];
       end
     end
   end
@@ -129,6 +132,9 @@ end
 
 // calculate next state of the game relative to each row
 always_comb begin
+  next_underpopulation_data = 8'b0;
+  next_overpopulation_data = 8'b0;
+  next_game_state = 8'b0;
   for (int i=0; i<8; i++) begin
 
     case(
@@ -141,12 +147,19 @@ always_comb begin
       last_game_state[i] +          // bottom
       last_game_state[48+i]         // top
     )
+    0:
+      next_underpopulation_data[i] = last_game_state[56+i] == 1'b1;
+    1:
+      next_underpopulation_data[i] = last_game_state[56+i] == 1'b1;
     2:
       next_game_state[i] = last_game_state[56+i] == 1'b1;
     3:
       next_game_state[i] = 1'b1;
     default:
-      next_game_state[i] = 1'b0;
+      begin
+        next_game_state[i] = 1'b0;
+        next_overpopulation_data[i] = last_game_state[56+i] == 1'b1;
+      end
     endcase
     // next_game_state[i] = last_game_state[(56+i+1)%64]; // increments circuit by 1 each time
   end
@@ -157,6 +170,8 @@ end
 // writing next state to memory
 // assign write_data = next_game_state;
 assign write_data = {next_game_state};
+assign write_underpopulation_data = {next_underpopulation_data};
+assign write_overpopulation_data = {next_overpopulation_data};
 
 assign write_to_mem = (state == WRITE_OUT && mem_state == USE_MEM);
 
