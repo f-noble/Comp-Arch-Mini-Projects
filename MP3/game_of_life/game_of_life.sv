@@ -1,5 +1,11 @@
+// Iterates on conway's game of life at a set FPS
+// game state is sent to be stored in 8 consecutive bytes in memory
+// uses an 8x8 grid, where neighbors on the edges of the grid
+// wrap around to make it act more like an infinite grid
+// data on which cells die and how can be stored in different memory grids
+
 module game_of_life #(
-    parameter FPS = 1
+    parameter FPS = 8
 )(
 // inputs
 input logic clk,
@@ -15,12 +21,14 @@ output logic using_memory
 
 localparam FRAME_CYCLES = 12000000/FPS; // clock cycles per frame
 
-localparam IDLE = 3'b100;
-localparam READ_IN = 3'b010;
-localparam WRITE_OUT = 3'b001;
+// States
+localparam IDLE = 3'b100; // wait for next frame
+localparam READ_IN = 3'b010; // read data from the memory
+localparam WRITE_OUT = 3'b001; // find next game state and write to memory
 
-localparam USE_MEM = 1'b0;
-localparam INC_ADDR = 1'b1;
+// READ_IN and WRITE_OUT sub-states
+localparam USE_MEM = 1'b0; // write to memory or read from it
+localparam INC_ADDR = 1'b1; // change the byte requested from memory
 
 
 logic [$clog2(FRAME_CYCLES)-1:0] frame_time_counter = 0;
@@ -76,7 +84,7 @@ always_comb begin
   end
 end
 
-// updating registers dependent on state
+// incrementing memory address to be read from or written to
 always_ff @(posedge clk) begin
   if (next_mem_state == INC_ADDR && mem_addr !== 4'b1000) begin
     mem_addr <= mem_addr + 4'b0001; 
@@ -100,7 +108,7 @@ always_ff @(posedge clk) begin
     end
 end
 
-// loading game state from memory and shifting to each row
+// loading game state from memory 1 byte/memory location at a time
 always_ff @(posedge clk) begin
   if (state == READ_IN && mem_state == USE_MEM) begin
     last_game_state[7:0] <= mem_in;
@@ -121,14 +129,6 @@ always_ff @(posedge clk) begin
   end
 end
 
-// updating shift register when writing out
-// always_ff @(posedge clk) begin
-  // if (state == WRITE_OUT && mem_state = USE_MEM) begin
-    
-  // end
-// end
-
-
 
 // calculate next state of the game relative to each row
 always_comb begin
@@ -147,28 +147,26 @@ always_comb begin
       last_game_state[i] +          // bottom
       last_game_state[48+i]         // top
     )
-    0:
+    0: // only if alive and then dies of underpopulation
       next_underpopulation_data[i] = last_game_state[56+i] == 1'b1;
-    1:
+    1: // only if alive and then dies of underpopulation
       next_underpopulation_data[i] = last_game_state[56+i] == 1'b1;
-    2:
+    2: // stays alive if previously alive
       next_game_state[i] = last_game_state[56+i] == 1'b1;
-    3:
+    3: // stays alive or becomes alive
       next_game_state[i] = 1'b1;
-    default:
+    default: // only if alive and then dies of overpopulation
       begin
         next_game_state[i] = 1'b0;
         next_overpopulation_data[i] = last_game_state[56+i] == 1'b1;
       end
     endcase
-    // next_game_state[i] = last_game_state[(56+i+1)%64]; // increments circuit by 1 each time
+    // for reference
+    // next_game_state[i] = last_game_state[(56+i+1)%64]; // increments index by 1 each time
   end
 end
 
-
-
-// writing next state to memory
-// assign write_data = next_game_state;
+// set outputs to be sent to memory module
 assign write_data = {next_game_state};
 assign write_underpopulation_data = {next_underpopulation_data};
 assign write_overpopulation_data = {next_overpopulation_data};

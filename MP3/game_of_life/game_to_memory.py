@@ -44,6 +44,7 @@ with open(infile,"r") as file:
         line = file.readline()
     assert(line == "")
 
+# output each row as a 2-digit hex number in outfile
 with open(outfile, "w") as file:
     for row in range(8):
         write_line = lines[row]

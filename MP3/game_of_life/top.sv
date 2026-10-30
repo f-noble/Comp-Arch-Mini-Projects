@@ -2,21 +2,19 @@
 `include "display_memory.sv"
 `include "game_of_life.sv"
 
-// led_matrix top level module
+// conway's game of life top level module
+// connects game module to external memory/asynchronous display driver
 
 module top (
     input logic     clk, 
     input logic     SW, 
     input logic     BOOT,
-    // output logic    LED,
-    // output logic    RGB_G,
     output logic    _48b, 
     output logic    _45a
 );
-
     
 
-    logic use_memory; // state of game
+    logic use_memory; 
     logic write_data;
     logic [7:0] green_input;
     logic [7:0] blue_input;
@@ -31,12 +29,7 @@ module top (
     logic [7:0] bitmap_green_data;
     logic [7:0] bitmap_blue_data;
 
-    // logic rgb_g = 1'b0;
-    
-    // Memory location to be read from memory of each of the colors
-    // assign address = { 5'b0 , pixel };
-
-    // Instance the controller
+    // Instance the combined memory and display driver
     display_memory u1 (
         .clk                      (clk),
         .SW                       (SW),
@@ -64,6 +57,7 @@ module top (
         .mem_out_blue             ()
     );
 
+    // Instance the game state controller
     game_of_life u2 (
         .clk                 (clk),
         .waiting_for_display (display_busy),
@@ -76,40 +70,5 @@ module top (
         .write_to_mem               (write_data),
         .using_memory               (use_memory)
     );
-
-    // when the boot button is pressed, wait until the current frame is displayed and then start using the memory
-    // always_ff @(posedge clk) begin
-        // if (~BOOT) begin
-            // if (~display_busy) begin
-                // use_memory <= 1'b1;
-            // end
-            // else begin
-            // use_memory <= 1'b0;
-            // end
-        // end
-        // else begin
-            // use_memory <= 1'b0;
-        // end
-
-    // end
-
-    // write data from switch whenever you are able to use memory
-    // always_ff @(posedge clk) begin
-        // if(use_memory) begin
-            // write_data <= 1'b1;
-            // green_input <= { 4'b0, SW, 3'b0 };
-        // end
-        // else begin
-            // write_data <= 1'b0;
-        // end
-
-        // rgb_g <= 1'b1;
-    // end
-
-
-    // assign LED = write_data;
-    // assign RGB_G = green_input[3];
-    // assign _48b = _;
-    // assign _45a = ~ws2812b_out; // not needed unless voltage level issues
 
 endmodule

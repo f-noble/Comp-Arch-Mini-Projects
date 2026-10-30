@@ -1,7 +1,7 @@
 `timescale 10ns/10ns
 `include "top.sv"
 
-// test the led matrix
+// test game of life implementation
 module game_of_life_tb;
 
     logic clk = 0;

@@ -56,12 +56,16 @@ with open(infile,"r") as file:
     assert(line == "")
 
 
+expected_memory_values = ""
+
 print("starting iterations")
 new_lines = [[0 for _ in range(8)] for _ in range(8)]
 while(iterations_left > 0):
     print(iterations_left,"iterations left")
+    hexstr = ""
     for row in range(8):
         printstr = ""
+        row_hex_str = ""
         for col in range(8):
             # game of life rules for each grid square
             # modulo operator wraps adjacent indices around edges of grid
@@ -84,8 +88,15 @@ while(iterations_left > 0):
                 
                 
             printstr = printstr+str(new_lines[row][col])
+            row_hex_str = row_hex_str+str(new_lines[row][col])
+        hexstr = hexstr+row_hex_str[4:8]+row_hex_str[0:4]
         print(printstr)
     lines = [a_row[:] for a_row in new_lines]
+    print_hex = ''.join(reversed(str(format(int(hexstr,2),"016x"))))
+    print_hex = print_hex[14:16]+print_hex[0:14]
+    # print what should be displayed in the read memory in gtkwave
+    print("Expected memory state:",print_hex)
+    expected_memory_values = expected_memory_values+" "+print_hex
     iterations_left -= 1
 print("done")
 
@@ -95,4 +106,6 @@ if (outfile is None):
     print("no outfile specified. outputting to:",outfile)
 else:
     print("outputting to:",outfile)
+
+print("Succession rules should show these states:",expected_memory_values)
 

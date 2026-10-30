@@ -3,7 +3,12 @@
 `include "ws2812b.sv"
 `include "controller.sv"
 
-// led_matrix top level module
+// combined external memory and asynchronous display driver
+// holds 3 byte-word memory arrays to push to the 8x8 RGB LED matrix
+// displays at a set 32 FPS, skipping a frame if the memory is being used
+// by an external source like the game of life module
+// can display both 1-bit rgb colors and 8-bit rgb colors, 
+// but this is not fully implemented -- game of life only uses single bits
 
 module display_memory(
     input logic     clk, 
@@ -86,7 +91,7 @@ module display_memory(
 
     // instance starting game state in memory of green channel
     memory #(
-        .INIT_FILE      ("testing_bitmap_mode.txt")
+        .INIT_FILE      ("glider_mem.txt")
     ) u0 (
         .clk            (clk),
         .read_address   (bitmap_address),
@@ -105,17 +110,6 @@ module display_memory(
         .write_data     (bitmap_row_mem_in_red),
         .read_data      (red_bmp_data)
     );
-
-    // Instance sample memory for green channel
-    // memory #(
-        // .INIT_FILE      ("spiral/green.txt")
-    // ) u2 (
-        // .clk            (clk), 
-        // .read_address   (address), 
-        // .write          (bitmap_write),
-        // .write_data     (bitmap_row_mem_in_green),
-        // .read_data      (green_data)
-    // );
 
     // Instance sample memory for blue channel
     memory #(
@@ -190,18 +184,7 @@ module display_memory(
 
     always_ff @(posedge clk) begin // pass matrix color assignments from memory to shift register when requested by controller
         if (load_sreg) begin // Only shows 3 MSB of colors to reduce brightness
-            // unique case ({ SW, BOOT })
-                // 2'b00: // show green only when BOOT and SW pressed
-                    // shift_reg <= { 5'd0, green_output[7:5], 16'd0 };
-                // 2'b01: // show red only when SW pressed
-                    // shift_reg <= { 8'd0, 5'd0, red_data[7:5], 8'd0 };
-                // 2'b10: // show blue only when BOOT pressed
-                    // shift_reg <= { 16'd0, 5'd0 ,blue_data[7:5] };
-                // 2'b11: // show full colors
-                // CORRECT LINE: 
-                    // shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_data[7:5], 5'd0, blue_data[7:5] };
-                    shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_output[7:5], 5'd0, blue_output[7:5] };
-            // endcase
+            shift_reg <= { 5'd0, green_output[7:5], 5'd0, red_output[7:5], 5'd0, blue_output[7:5] };
         end
         else if (shift) begin // shift to next bit when requested by driver
             shift_reg <= { shift_reg[22:0], 1'b0 };
